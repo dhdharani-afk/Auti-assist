@@ -1,0 +1,31 @@
+# Secrets and local environment files
+.env
+.env.*
+!.env.example
+backend/.env
+frontend/.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# Frontend build/install output
+node_modules/
+dist/
+frontend/node_modules/
+frontend/dist/
+
+# Local databases and logs
+*.db
+*.sqlite
+*.sqlite3
+*.log
+
+# Hosting/tooling
+.wrangler/
+.render/
