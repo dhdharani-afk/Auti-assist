@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { getTodayMission } from '../services/mission';
 import { missionReadAloudText, speakText, speechSupported, stopSpeaking } from '../services/speech';
 import { formatApiError } from '../utils/apiError';
+import PixelBuddy from '../components/PixelBuddy';
 
 const defaultMetrics = {
   todayProgress: 0,
@@ -32,6 +33,15 @@ const quickPlayCards = [
 
 const feelingOptions = ['Happy', 'Sad', 'Angry', 'Scared', 'Calm', 'Okay'];
 const journeyDefaults = ['Wake Up', 'Brush Teeth', 'Breakfast', 'School', 'Study', 'Play', 'Dinner', 'Sleep'];
+const dashboardBuddySnapshotKey = (userId) => `autiassist-dashboard-buddy-${userId}`;
+
+function isNewReward(previous, next) {
+  if (!previous || !Array.isArray(previous.badges) || !Array.isArray(previous.rewards)) return false;
+  const previousBadges = new Map(previous.badges.map((badge) => [badge.name, badge.earned]));
+  const previousMilestones = new Map(previous.rewards.map((reward) => [reward.name, reward.earned]));
+  return next.badges.some((badge) => badge.earned && !previousBadges.get(badge.name))
+    || next.rewards.some((reward) => reward.earned && !previousMilestones.get(reward.name));
+}
 
 function DashboardCard({ children, className = '' }) {
   return <div className={`card ${className}`.trim()}>{children}</div>;
@@ -57,6 +67,39 @@ function Dashboard() {
   const [dashboardLoading, setDashboardLoading] = useState(true);
   const [dashboardError, setDashboardError] = useState('');
   const [reloadDashboard, setReloadDashboard] = useState(0);
+  const [buddyAnimation, setBuddyAnimation] = useState('idle');
+  const buddyAnimationTimeoutRef = useRef(null);
+  const buddyFollowUpTimeoutRef = useRef(null);
+  const welcomeAnimationStartedRef = useRef(false);
+  const pendingBuddyAnimationRef = useRef(null);
+
+  const triggerBuddyAnimation = useCallback((animation) => {
+    setBuddyAnimation(animation);
+    window.clearTimeout(buddyAnimationTimeoutRef.current);
+    buddyAnimationTimeoutRef.current = window.setTimeout(
+      () => setBuddyAnimation('idle'),
+      animation === 'wave' ? 1300 : animation === 'celebrate' ? 1100 : 900,
+    );
+  }, []);
+
+  useEffect(() => () => {
+    window.clearTimeout(buddyAnimationTimeoutRef.current);
+    window.clearTimeout(buddyFollowUpTimeoutRef.current);
+  }, []);
+
+  useEffect(() => {
+    if (dashboardLoading || welcomeAnimationStartedRef.current) return;
+    welcomeAnimationStartedRef.current = true;
+    triggerBuddyAnimation('wave');
+    if (pendingBuddyAnimationRef.current) {
+      const followUpAnimation = pendingBuddyAnimationRef.current;
+      pendingBuddyAnimationRef.current = null;
+      buddyFollowUpTimeoutRef.current = window.setTimeout(
+        () => triggerBuddyAnimation(followUpAnimation),
+        1300,
+      );
+    }
+  }, [dashboardLoading, triggerBuddyAnimation]);
 
   useEffect(() => {
     const mediaQuery = typeof window !== 'undefined' ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
@@ -72,15 +115,59 @@ function Dashboard() {
       setDashboardLoading(true);
       setDashboardError('');
       try {
-        const [dashboardResponse, routineResponse, learningResponse, missionResponse, recommendationResponse] = await Promise.all([
+        const [dashboardResponse, routineResponse, learningResponse, missionResponse, recommendationResponse, rewardsResponse] = await Promise.all([
           api.get('/api/dashboard'),
           api.get('/api/routine'),
           api.get('/api/learning'),
           getTodayMission(),
           api.get('/api/recommendations'),
+          api.get('/api/rewards').catch((error) => {
+            console.warn('Dashboard Buddy could not check for new achievements.', error);
+            return null;
+          }),
         ]);
 
         const dashboard = dashboardResponse.data || defaultMetrics;
+        const buddySnapshotKey = user?.id ? dashboardBuddySnapshotKey(user.id) : '';
+        let previousBuddySnapshot = null;
+        if (buddySnapshotKey) {
+          try {
+            const savedSnapshot = JSON.parse(window.sessionStorage.getItem(buddySnapshotKey) || 'null');
+            if (savedSnapshot && Number.isFinite(savedSnapshot.activityCount)) {
+              previousBuddySnapshot = savedSnapshot;
+            }
+          } catch (error) {
+            console.warn('Dashboard Buddy activity history could not be read.', error);
+          }
+        }
+        const rewardData = rewardsResponse?.data;
+        const nextBuddySnapshot = {
+          activityCount: Number(rewardData?.completed_activities ?? dashboard.today_activity_count ?? 0),
+          badges: Array.isArray(rewardData?.badges)
+            ? rewardData.badges.map(({ name, earned }) => ({ name, earned }))
+            : previousBuddySnapshot?.badges || [],
+          rewards: Array.isArray(rewardData?.rewards)
+            ? rewardData.rewards.map(({ name, earned }) => ({ name, earned }))
+            : previousBuddySnapshot?.rewards || [],
+        };
+        const realActivityCompleted = previousBuddySnapshot
+          && nextBuddySnapshot.activityCount > previousBuddySnapshot.activityCount;
+        const realAchievementUnlocked = isNewReward(previousBuddySnapshot, nextBuddySnapshot);
+        if (realAchievementUnlocked || realActivityCompleted) {
+          const followUpAnimation = realAchievementUnlocked ? 'celebrate' : 'happy';
+          if (welcomeAnimationStartedRef.current) {
+            triggerBuddyAnimation(followUpAnimation);
+          } else {
+            pendingBuddyAnimationRef.current = followUpAnimation;
+          }
+        }
+        if (buddySnapshotKey) {
+          try {
+            window.sessionStorage.setItem(buddySnapshotKey, JSON.stringify(nextBuddySnapshot));
+          } catch (error) {
+            console.warn('Dashboard Buddy activity history could not be saved.', error);
+          }
+        }
         dashboard.recommendation = recommendationResponse.data?.recommendations?.[0]?.detail || dashboard.recommendation;
         setMetrics(dashboard);
         setMissionStatus(missionResponse || { missions: [], completed_count: 0, total: 3, stars_earned: 0 });
@@ -131,7 +218,7 @@ function Dashboard() {
     };
 
     fetchDashboardData();
-  }, [reloadDashboard]);
+  }, [reloadDashboard, triggerBuddyAnimation, user?.id]);
 
   const currentStars = Number(metrics.stars || 0);
 
@@ -336,7 +423,18 @@ function Dashboard() {
 
         <DashboardCard className="dashboard-mascot-card">
           <div className={`dashboard-mascot ${isReducedMotion ? 'reduced-motion' : ''}`} aria-live="polite">
-            <span className="companion-emoji" aria-hidden="true">🤖</span>
+            <PixelBuddy
+              animation={buddyAnimation}
+              message={
+                buddyAnimation === 'celebrate'
+                  ? 'A new achievement! You did it! ⭐'
+                  : buddyAnimation === 'happy'
+                    ? 'Great work completing an activity! 🎉'
+                    : `Hi ${user?.full_name || 'Friend'}! Let’s make today a great adventure.`
+              }
+              animationsEnabled={!isReducedMotion}
+              className="dashboard-pixel-buddy"
+            />
           </div>
           <div className="dashboard-mascot-bubble">Great job! Let’s try another activity! 🎉</div>
         </DashboardCard>

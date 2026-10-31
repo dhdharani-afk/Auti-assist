@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import SentenceBuilder from '../components/SentenceBuilder';
+import PictureWordBuilder from '../components/PictureWordBuilder';
 import api from '../services/api';
 import { formatApiError } from '../utils/apiError';
 import { speakText, speechSupported } from '../services/speech';
@@ -154,12 +155,13 @@ export default function Communication() {
         </div>
       </div>
 
-      <div className="card communication-free-builder">
-        <div className="communication-section-heading"><div><span className="dashboard-eyebrow">🖼️ Picture Words</span><h2>Build your own sentence</h2></div><button type="button" className="ghost-btn" onClick={() => listen(freeSentence.join(' ') || 'I want water.')}>🔊 Listen</button></div>
-        <div className="free-sentence-display">{freeSentence.length ? freeSentence.join(' ') : 'Tap picture words below.'}</div>
-        {cards.length ? <div className="communication-card-grid">{cards.map((card) => <button key={card.key} type="button" className="communication-word-card" onClick={() => addFreeWord(card.label.toLowerCase())}><span>{card.emoji}</span><strong>{card.label}</strong></button>)}</div> : <p>Picture words are unavailable until the service reconnects.</p>}
-        <button type="button" className="ghost-btn" onClick={() => setFreeSentence([])} disabled={!freeSentence.length}>🔄 Clear</button>
-      </div>
+      <PictureWordBuilder
+        cards={cards}
+        sentence={freeSentence.join(' ')}
+        onWord={(card) => addFreeWord(card.label.toLowerCase())}
+        onListen={() => listen(freeSentence.join(' ') || 'I want water.')}
+        onClear={() => setFreeSentence([])}
+      />
     </div>
   );
 }

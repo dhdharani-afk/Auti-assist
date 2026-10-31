@@ -16,7 +16,7 @@ export const emotionService = {
     return api.post('/api/emotion/activity', {
       emotion,
       estimated: false,
-      confidence: 0,
+      confidence: null,
       activity,
     });
   },

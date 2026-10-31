@@ -4,11 +4,50 @@ from typing import Dict, List
 
 
 class ExpressionClassifier:
-    """Conservative expression estimate from normalized Face Mesh geometry.
+    """Conservative visible-expression estimates from MediaPipe output.
 
     These are visible-expression cues, not a measurement of someone's internal
-    emotional state. Ambiguous geometry deliberately produces no label.
+    emotional state. Ambiguous signals deliberately produce no label.
     """
+
+    def predict_blendshapes(self, categories: List[object]) -> Dict[str, object]:
+        scores: Dict[str, float] = {}
+        for category in categories:
+            name = getattr(category, 'category_name', None)
+            score = getattr(category, 'score', None)
+            if isinstance(name, str) and isinstance(score, (int, float)):
+                scores[name] = float(score)
+
+        if not scores:
+            return {'expression': None, 'confidence': None}
+
+        def average(*names: str) -> float:
+            values = [scores[name] for name in names if name in scores]
+            return sum(values) / len(values) if values else 0.0
+
+        smile = average('mouthSmileLeft', 'mouthSmileRight')
+        frown = average('mouthFrownLeft', 'mouthFrownRight')
+        brow_down = average('browDownLeft', 'browDownRight')
+        eye_squint = average('eyeSquintLeft', 'eyeSquintRight')
+        inner_brow_up = scores.get('browInnerUp', 0.0)
+
+        if smile >= 0.4:
+            expression = 'happy'
+        elif brow_down >= 0.35 and eye_squint >= 0.25:
+            expression = 'angry'
+        elif frown >= 0.3 or (inner_brow_up >= 0.45 and frown >= 0.15):
+            expression = 'sad'
+        elif max(smile, frown, brow_down, eye_squint, inner_brow_up) < 0.18:
+            expression = 'calm'
+        else:
+            expression = None
+
+        return {
+            'expression': expression,
+            'confidence': None,
+            'estimation_type': 'demo',
+            'model_note': 'Demo estimation from MediaPipe blendshapes' if expression else 'Unclear facial-expression signal',
+        }
 
     def predict(self, features: Dict[str, float]) -> Dict[str, object]:
         smile = float(features.get('smile_curve', 0.0))
@@ -19,27 +58,23 @@ class ExpressionClassifier:
         # Clear upward mouth-corner movement is the most useful available cue.
         if smile >= 0.035:
             expression = 'happy'
-            confidence = min(0.88, 0.58 + smile * 4.0)
         # A lowered brow plus narrowed eyes is a weak frown cue; require both.
         elif brow_lower >= 0.035 and eye_open <= 0.20:
             expression = 'angry'
-            confidence = min(0.72, 0.52 + brow_lower * 2.0)
         # Sadness is particularly hard to infer from a still image. Only report
         # a visible downturned mouth with otherwise relaxed brows.
         elif smile <= -0.045 and brow_lower < 0.025 and mouth_open < 0.12:
             expression = 'sad'
-            confidence = min(0.68, 0.50 + abs(smile) * 2.0)
         elif abs(smile) < 0.025 and brow_lower < 0.025 and 0.12 < eye_open < 0.30:
-            expression = 'neutral'
-            confidence = 0.56
+            expression = 'calm'
         else:
             expression = None
-            confidence = 0.0
 
         return {
             'expression': expression,
-            'confidence': round(confidence, 2),
-            'model_note': 'Landmark-based estimate' if expression else 'Unclear facial-expression signal',
+            'confidence': None,
+            'estimation_type': 'demo',
+            'model_note': 'Demo estimation from facial landmarks' if expression else 'Unclear facial-expression signal',
         }
 
     def extract_features(self, landmarks: List[object]) -> Dict[str, float]:

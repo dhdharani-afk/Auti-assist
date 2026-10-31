@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { formatApiError } from '../utils/apiError';
+import useBuddyPreference from '../hooks/useBuddyPreference';
 
 export default function Settings() {
   const { user, logout, setUser } = useAuth();
+  const [buddyAnimation, setBuddyAnimation] = useBuddyPreference();
   const [settings, setSettings] = useState({
     name: user?.full_name || '',
     email: user?.email || '',
@@ -94,6 +96,19 @@ export default function Settings() {
             <option>On</option>
             <option>Off</option>
           </select>
+        </div>
+        <div className="field-group">
+          <label htmlFor="buddy-animation-setting">Buddy Animation</label>
+          <select
+            id="buddy-animation-setting"
+            className="select"
+            value={buddyAnimation ? 'On' : 'Off'}
+            onChange={(event) => setBuddyAnimation(event.target.value === 'On')}
+          >
+            <option value="On">On</option>
+            <option value="Off">Off</option>
+          </select>
+          <small className="settings-help-text">Turn AutiAssist Buddy’s movement on or off on this device.</small>
         </div>
         <div className="field-group">
           <label>Notifications</label>

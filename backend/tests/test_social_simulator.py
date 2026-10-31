@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from auth import get_current_user
 from database import SessionLocal
 from main import app
-from models import SocialSituationResult, User
+from models import CommunicationLog, SocialSituationResult, User
 
 client = TestClient(app)
 
@@ -27,6 +27,7 @@ def _cleanup(*users: User) -> None:
     db = SessionLocal()
     user_ids = [user.id for user in users]
     db.query(SocialSituationResult).filter(SocialSituationResult.user_id.in_(user_ids)).delete(synchronize_session=False)
+    db.query(CommunicationLog).filter(CommunicationLog.user_id.in_(user_ids)).delete(synchronize_session=False)
     db.query(User).filter(User.id.in_(user_ids)).delete(synchronize_session=False)
     db.commit()
     db.close()
@@ -45,6 +46,11 @@ def test_new_child_starts_with_zero_social_progress():
             'categories_practiced': 0,
             'stars_earned': 0,
             'progress': 0,
+            'responses_selected': 0,
+            'communication_practices': 0,
+            'speech_practices': 0,
+            'aac_practices': 0,
+            'scenario_completions': {},
         }
     finally:
         _cleanup(user)
@@ -107,3 +113,51 @@ def test_social_results_are_isolated_and_non_child_is_forbidden():
         assert client.get('/api/social-simulator/progress').status_code == 403
     finally:
         _cleanup(first, second, caregiver)
+
+
+def test_scenarios_include_picture_scene_choice_and_practice_data():
+    user = _make_user('social-visual-data@example.com')
+    app.dependency_overrides[get_current_user] = lambda: user
+    try:
+        response = client.get('/api/social-simulator/scenarios')
+        assert response.status_code == 200
+        scenarios = response.json()['scenarios']
+        assert len(scenarios) == 10
+        for scenario in scenarios:
+            assert scenario['image']
+            assert scenario['background']
+            assert scenario['characters']
+            assert scenario['objects']
+            assert scenario['emotion']['icon']
+            for step in scenario['steps']:
+                assert step['practice_sentence']
+                assert all(option['image'] for option in step['options'])
+    finally:
+        _cleanup(user)
+
+
+def test_social_progress_tracks_response_and_communication_practice():
+    user = _make_user('social-interactions@example.com')
+    app.dependency_overrides[get_current_user] = lambda: user
+    try:
+        for phrase, category, spoken in [
+            ('Could you please help me?', 'social-simulator:response', False),
+            ('Could you please help me?', 'social-simulator:speech', True),
+            ('help please', 'social-simulator:aac', False),
+            ('Could you please help me?', 'social-simulator:listen', True),
+        ]:
+            saved = client.post('/api/communication', json={
+                'phrase': phrase,
+                'category': category,
+                'spoken': spoken,
+            })
+            assert saved.status_code == 200
+
+        progress = client.get('/api/social-simulator/progress')
+        assert progress.status_code == 200
+        assert progress.json()['responses_selected'] == 1
+        assert progress.json()['communication_practices'] == 3
+        assert progress.json()['speech_practices'] == 1
+        assert progress.json()['aac_practices'] == 1
+    finally:
+        _cleanup(user)

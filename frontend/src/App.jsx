@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -13,11 +14,12 @@ import Routine from './pages/Routine';
 import Rewards from './pages/Rewards';
 import Progress from './pages/Progress';
 import Settings from './pages/Settings';
-import SocialSituationSimulator from './pages/SocialSituationSimulator';
 import ColourMatchActivity from './pages/ColourMatchActivity';
 import EmotionMatchActivity from './pages/EmotionMatchActivity';
 import SayHelloActivity from './pages/SayHelloActivity';
 import AppLayout from './components/AppLayout';
+
+const SocialSituationSimulator = lazy(() => import('./pages/SocialSituationSimulator'));
 
 function AppRoutes() {
   const { token, loading } = useAuth();
@@ -41,7 +43,7 @@ function AppRoutes() {
         <Route path="/rewards" element={<Rewards />} />
         <Route path="/progress" element={<Progress />} />
         <Route path="/settings" element={<Settings />} />
-        <Route path="/social-simulator" element={<ProtectedRoute requiredRole="child"><SocialSituationSimulator /></ProtectedRoute>} />
+        <Route path="/social-simulator" element={<ProtectedRoute requiredRole="child"><Suspense fallback={<div className="card">Loading picture situations…</div>}><SocialSituationSimulator /></Suspense></ProtectedRoute>} />
         <Route path="/activities/colour-match" element={<ColourMatchActivity />} />
         <Route path="/activities/emotion-match" element={<EmotionMatchActivity />} />
         <Route path="/activities/say-hello" element={<SayHelloActivity />} />

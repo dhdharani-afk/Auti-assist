@@ -99,7 +99,7 @@ class AIChatResponse(BaseModel):
 class EmotionActivityCreate(BaseModel):
     emotion: str
     estimated: bool = False
-    confidence: float = 0.0
+    confidence: Optional[float] = None
     activity: str
 
 
@@ -115,7 +115,9 @@ class EmotionAnalysisResponse(BaseModel):
     face_detected: bool
     multiple_faces: bool = False
     expression: Optional[str] = None
-    confidence: float = 0.0
+    confidence: Optional[float] = None
+    suggested_activity: Optional[str] = None
+    estimation_type: Optional[str] = None
     message: str
     estimated: bool = True
     source: str = 'camera'

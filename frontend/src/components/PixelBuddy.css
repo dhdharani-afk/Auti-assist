@@ -1,0 +1,111 @@
+.pixel-buddy-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.pixel-buddy {
+  --buddy-ink: #354064;
+  --buddy-blue: #8197ed;
+  --buddy-teal: #6bc4ae;
+  position: relative;
+  display: inline-grid;
+  width: 104px;
+  height: 108px;
+  flex: 0 0 auto;
+  place-items: center;
+  image-rendering: pixelated;
+}
+
+.pixel-buddy-sprite {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  shape-rendering: crispEdges;
+}
+
+.pixel-buddy-shadow { fill: rgba(59, 70, 103, .12); }
+.pixel-buddy-body,
+.pixel-buddy-arm,
+.pixel-buddy-leg { fill: var(--buddy-blue); stroke: var(--buddy-ink); stroke-width: 2; stroke-linejoin: bevel; }
+.pixel-buddy-belly { fill: #a9b8f4; }
+.pixel-buddy-head { fill: #fff; stroke: var(--buddy-ink); stroke-width: 2; stroke-linejoin: bevel; }
+.pixel-buddy-screen { fill: #dff7f1; stroke: var(--buddy-ink); stroke-width: 2; }
+.pixel-buddy-eye,
+.pixel-buddy-mouth { fill: var(--buddy-ink); }
+.pixel-buddy-cheek { fill: #f4a8ad; opacity: .85; }
+.pixel-buddy-antenna { fill: #f4c86b; stroke: var(--buddy-ink); stroke-width: 2; stroke-linejoin: bevel; }
+.pixel-buddy-sparkles { fill: #f2c966; opacity: 0; }
+
+.pixel-buddy[data-state="idle"]:not(.is-static) { animation: buddy-breathe 2.8s ease-in-out infinite; }
+.pixel-buddy[data-state="wave"]:not(.is-static) .pixel-buddy-arm-right { transform-box: fill-box; transform-origin: 15% 85%; animation: buddy-wave .42s ease-in-out 3; }
+.pixel-buddy[data-state="happy"] .pixel-buddy-mouth { d: path("M39 36h5v4h4v3h8v-3h4v-4h5v7h-5v4H44v-4h-5z"); }
+.pixel-buddy[data-state="happy"]:not(.is-static) { animation: buddy-happy .38s ease-in-out 2; }
+.pixel-buddy[data-state="walk"]:not(.is-static) .pixel-buddy-leg-left { transform-box: fill-box; transform-origin: 50% 0; animation: buddy-step .34s ease-in-out 4 alternate; }
+.pixel-buddy[data-state="walk"]:not(.is-static) .pixel-buddy-leg-right { transform-box: fill-box; transform-origin: 50% 0; animation: buddy-step .34s ease-in-out 4 alternate-reverse; }
+.pixel-buddy[data-state="walk"]:not(.is-static) .pixel-buddy-arm-left { transform-box: fill-box; transform-origin: 50% 0; animation: buddy-step .34s ease-in-out 4 alternate-reverse; }
+.pixel-buddy[data-state="walk"]:not(.is-static) .pixel-buddy-arm-right { transform-box: fill-box; transform-origin: 50% 0; animation: buddy-step .34s ease-in-out 4 alternate; }
+.pixel-buddy[data-state="celebrate"] .pixel-buddy-mouth { d: path("M39 36h5v4h4v3h8v-3h4v-4h5v7h-5v4H44v-4h-5z"); }
+.pixel-buddy[data-state="celebrate"]:not(.is-static) { animation: buddy-celebrate .55s ease-in-out 2; }
+.pixel-buddy[data-state="celebrate"]:not(.is-static) .pixel-buddy-sparkles { animation: buddy-sparkle .9s ease-in-out 1 both; }
+.pixel-buddy.is-static .pixel-buddy-sparkles { opacity: 0; }
+
+.pixel-buddy-message {
+  max-width: 220px;
+  padding: 11px 14px;
+  border: 1px solid rgba(120, 133, 167, .14);
+  border-radius: 17px 17px 17px 5px;
+  color: #43516e;
+  background: #fff;
+  box-shadow: 0 7px 18px rgba(89, 104, 148, .09);
+  font-size: .86rem;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+@keyframes buddy-breathe {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-2px) scale(1.012); }
+}
+
+@keyframes buddy-wave {
+  0%, 100% { transform: rotate(0); }
+  50% { transform: rotate(-24deg); }
+}
+
+@keyframes buddy-happy {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes buddy-step {
+  from { transform: rotate(-12deg); }
+  to { transform: rotate(12deg); }
+}
+
+@keyframes buddy-celebrate {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  35% { transform: translateY(-6px) rotate(-4deg); }
+  70% { transform: translateY(-2px) rotate(4deg); }
+}
+
+@keyframes buddy-sparkle {
+  0%, 100% { opacity: 0; }
+  25%, 75% { opacity: .9; }
+}
+
+@media (max-width: 600px) {
+  .pixel-buddy { width: 82px; height: 88px; }
+  .pixel-buddy-message { max-width: 180px; font-size: .78rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pixel-buddy,
+  .pixel-buddy *,
+  .pixel-buddy *::before,
+  .pixel-buddy *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

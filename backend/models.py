@@ -134,7 +134,7 @@ class EmotionActivity(Base):
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     emotion = Column(String(100), nullable=False)
     estimated = Column(Boolean, default=False)
-    confidence = Column(Float, default=0.0)
+    confidence = Column(Float, nullable=True, default=None)
     activity = Column(String(255), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 

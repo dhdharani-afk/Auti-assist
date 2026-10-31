@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from auth import get_current_user
 from database import get_db
-from models import SocialSituationResult, User
+from models import CommunicationLog, SocialSituationResult, User
 from schemas import SocialSituationResultCreate
 
 router = APIRouter()
@@ -32,6 +32,88 @@ SCENARIOS = [
 ]
 
 SCENARIO_MAP = {scenario['id']: scenario for scenario in SCENARIOS}
+
+SCENE_DETAILS = {
+    'meeting-new-friend': {
+        'image': 'playground', 'background': 'playground',
+        'characters': [{'id': 'child', 'label': 'You'}, {'id': 'friend', 'label': 'Ravi'}],
+        'objects': [{'id': 'ball', 'label': 'Ball', 'icon': '⚽'}, {'id': 'bench', 'label': 'Bench', 'icon': '🪑'}],
+        'emotion': {'label': 'Friendly', 'icon': '😊'},
+        'steps': [{'practice_sentence': 'Hi Ravi! My name is Sam.', 'choice_icons': ['👋', '✋', '🚶', '💭']},
+                  {'practice_sentence': 'I like building games. What do you like?', 'choice_icons': ['🧱', '🙅', '🎲']}],
+    },
+    'greeting-teacher': {
+        'image': 'classroom', 'background': 'classroom',
+        'characters': [{'id': 'child', 'label': 'You'}, {'id': 'teacher', 'label': 'Teacher'}],
+        'objects': [{'id': 'door', 'label': 'Classroom door', 'icon': '🚪'}, {'id': 'backpack', 'label': 'Backpack', 'icon': '🎒'}],
+        'emotion': {'label': 'Calm', 'icon': '😌'},
+        'steps': [{'practice_sentence': 'Good morning!', 'choice_icons': ['👋', '🔇', '🙂']}],
+    },
+    'asking-for-help': {
+        'image': 'classroom', 'background': 'classroom',
+        'characters': [{'id': 'child', 'label': 'You'}, {'id': 'teacher', 'label': 'Helpful adult'}],
+        'objects': [{'id': 'puzzle', 'label': 'Puzzle', 'icon': '🧩'}, {'id': 'hand', 'label': 'Helping hand', 'icon': '🤝'}],
+        'emotion': {'label': 'Worried', 'icon': '😟'},
+        'steps': [{'practice_sentence': 'Could you please help me?', 'choice_icons': ['🙋', '📣', '🧩']}],
+    },
+    'joining-group': {
+        'image': 'playground', 'background': 'playground',
+        'characters': [{'id': 'child', 'label': 'You'}, {'id': 'friends', 'label': 'Friends'}],
+        'objects': [{'id': 'paper', 'label': 'Drawing paper', 'icon': '🖍️'}, {'id': 'crayons', 'label': 'Crayons', 'icon': '🎨'}],
+        'emotion': {'label': 'Friendly', 'icon': '😊'},
+        'steps': [{'practice_sentence': 'May I draw with you?', 'choice_icons': ['🙋', '🗯️', '🖍️']}],
+    },
+    'sharing-toy': {
+        'image': 'home', 'background': 'home',
+        'characters': [{'id': 'child', 'label': 'You'}, {'id': 'friend', 'label': 'Friend'}],
+        'objects': [{'id': 'toy', 'label': 'Favorite toy', 'icon': '🧸'}, {'id': 'timer', 'label': 'Turn timer', 'icon': '⏱️'}],
+        'emotion': {'label': 'Calm', 'icon': '😌'},
+        'steps': [{'practice_sentence': 'You can have a turn after me.', 'choice_icons': ['🧸', '🙅', '✋']}],
+    },
+    'taking-turns': {
+        'image': 'home', 'background': 'home',
+        'characters': [{'id': 'child', 'label': 'You'}, {'id': 'friend', 'label': 'Friend'}],
+        'objects': [{'id': 'game', 'label': 'Board game', 'icon': '🎲'}, {'id': 'pieces', 'label': 'Game pieces', 'icon': '🟡'}],
+        'emotion': {'label': 'Happy', 'icon': '😊'},
+        'steps': [{'practice_sentence': 'I will take my turn, then pass the game.', 'choice_icons': ['🎲', '🧩', '✋']}],
+    },
+    'saying-thank-you': {
+        'image': 'classroom', 'background': 'classroom',
+        'characters': [{'id': 'child', 'label': 'You'}, {'id': 'friend', 'label': 'Friend'}],
+        'objects': [{'id': 'pencil', 'label': 'Pencil', 'icon': '✏️'}, {'id': 'notebook', 'label': 'Notebook', 'icon': '📒'}],
+        'emotion': {'label': 'Happy', 'icon': '😊'},
+        'steps': [{'practice_sentence': 'Thank you!', 'choice_icons': ['💛', '✏️', '🙂']}],
+    },
+    'saying-sorry': {
+        'image': 'playground', 'background': 'playground',
+        'characters': [{'id': 'child', 'label': 'You'}, {'id': 'friend', 'label': 'Friend'}],
+        'objects': [{'id': 'blocks', 'label': 'Fallen blocks', 'icon': '🧱'}, {'id': 'hands', 'label': 'Helping hands', 'icon': '🤝'}],
+        'emotion': {'label': 'Worried', 'icon': '😟'},
+        'steps': [{'practice_sentence': 'I am sorry. Can I help rebuild?', 'choice_icons': ['🤝', '👉', '💭']}],
+    },
+    'asking-permission': {
+        'image': 'classroom', 'background': 'classroom',
+        'characters': [{'id': 'child', 'label': 'You'}, {'id': 'friend', 'label': 'Friend'}],
+        'objects': [{'id': 'pens', 'label': 'Coloring pens', 'icon': '🖍️'}, {'id': 'artwork', 'label': 'Friend’s artwork', 'icon': '🖼️'}],
+        'emotion': {'label': 'Calm', 'icon': '😌'},
+        'steps': [{'practice_sentence': 'May I use your pens, please?', 'choice_icons': ['🙋', '🖍️', '🚫']}],
+    },
+    'saying-goodbye': {
+        'image': 'community', 'background': 'community',
+        'characters': [{'id': 'child', 'label': 'You'}, {'id': 'friend', 'label': 'Friend'}],
+        'objects': [{'id': 'door', 'label': 'Exit door', 'icon': '🚪'}, {'id': 'sun', 'label': 'Sunny day', 'icon': '☀️'}],
+        'emotion': {'label': 'Happy', 'icon': '😊'},
+        'steps': [{'practice_sentence': 'Goodbye! See you next time.', 'choice_icons': ['👋', '🛑', '🙂']}],
+    },
+}
+
+for scenario in SCENARIOS:
+    details = SCENE_DETAILS[scenario['id']]
+    scenario.update({key: value for key, value in details.items() if key != 'steps'})
+    for step, step_details in zip(scenario['steps'], details['steps']):
+        step.update(step_details)
+        for option, icon in zip(step['options'], step_details['choice_icons']):
+            option['image'] = icon
 
 
 def require_child(current_user: User = Depends(get_current_user)) -> User:
@@ -92,10 +174,34 @@ async def save_result(payload: SocialSituationResultCreate, current_user: User =
 @router.get('/social-simulator/progress')
 async def get_progress(current_user: User = Depends(require_child), db: Session = Depends(get_db)):
     results = db.query(SocialSituationResult).filter(SocialSituationResult.user_id == current_user.id).all()
+    communication_logs = (
+        db.query(CommunicationLog)
+        .filter(
+            CommunicationLog.user_id == current_user.id,
+            CommunicationLog.category.like('social-simulator:%'),
+        )
+        .all()
+    )
+    completed_by_scenario = {}
+    for result in results:
+        if result.completed:
+            completed_by_scenario[result.scenario_id] = completed_by_scenario.get(result.scenario_id, 0) + 1
+
+    count_category = lambda suffix: sum(
+        1 for log in communication_logs if log.category == f'social-simulator:{suffix}'
+    )
+    speech_practices = count_category('speech')
+    aac_practices = count_category('aac')
+    listen_practices = count_category('listen')
     return {
-        'scenarios_attempted': len(results),
+        'scenarios_attempted': max(len(results), count_category('attempt')),
         'scenarios_completed': sum(1 for result in results if result.completed),
         'categories_practiced': len({result.category for result in results}),
         'stars_earned': sum(result.stars_earned for result in results),
         'progress': min(100, round((sum(1 for result in results if result.completed) / len(SCENARIOS)) * 100)) if results else 0,
+        'responses_selected': count_category('response'),
+        'communication_practices': speech_practices + aac_practices + listen_practices,
+        'speech_practices': speech_practices,
+        'aac_practices': aac_practices,
+        'scenario_completions': completed_by_scenario,
     }

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import LearningQuestionCard from '../components/LearningQuestionCard';
+import PixelBuddy from '../components/PixelBuddy';
 import api from '../services/api';
 import { formatApiError } from '../utils/apiError';
 
@@ -123,7 +124,10 @@ export default function Learning() {
       </div>
 
       {loading ? <div className="card learning-loading">Loading your learning adventure...</div> : sessionComplete ? (
-        <div className="card learning-complete" role="status"><div className="learning-complete-icon">🎉</div><h2>Great work!</h2><p>{correctAnswers}/{Math.min(10, categoryQuestions.length)} completed correctly</p><strong>⭐ Stars earned: {sessionStars}</strong><button type="button" className="primary-btn" onClick={startFreshSession}>Try another set</button></div>
+        <div className="card learning-complete" role="status">
+          <PixelBuddy state="happy" message="You finished your learning activity! Great effort!" className="learning-pixel-buddy" />
+          <div className="learning-complete-icon">🎉</div><h2>Great work!</h2><p>{correctAnswers}/{Math.min(10, categoryQuestions.length)} completed correctly</p><strong>⭐ Stars earned: {sessionStars}</strong><button type="button" className="primary-btn" onClick={startFreshSession}>Try another set</button>
+        </div>
       ) : currentQuestion ? (
         <div className="card learning-session-card"><LearningQuestionCard key={`${category}-${currentQuestion.id}-${questionIndex}`} question={currentQuestion} questionNumber={questionIndex + 1} total={Math.min(10, categoryQuestions.length)} level={level} onAttempt={handleAttempt} onSubmit={handleSubmit} saving={saving} /><div className="learning-session-summary">Questions attempted: {attempted} · Correct: {correctAnswers}</div></div>
       ) : <div className="card learning-empty"><h2>No questions are ready yet.</h2><button type="button" className="primary-btn" onClick={loadLearning}>Reload activities</button></div>}

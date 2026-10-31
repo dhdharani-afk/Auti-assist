@@ -15,6 +15,10 @@ AutiAssist is a child-focused learning and communication support application. It
 
 The browser only calls FastAPI. AI API credentials and database credentials are server-side environment variables.
 
+## Social situation practice
+
+The existing child-protected `/social-simulator` route uses the authenticated social-simulator scenario, result, and progress APIs. Scenarios include local illustrated scenes and visual choices; voice, read-aloud, and picture-word AAC practice are recorded through the existing per-user communication log. Completion and stars continue to use the existing social result records, so this feature adds no tables or migration. If the scenario API is unavailable, previously loaded or built-in scenario content remains available for practice, but progress cannot be saved until the API reconnects.
+
 ## Local development
 
 Create `backend/.env` from `backend/.env.example`; for local development use `AUTIASSIST_ENV=development`, a private random `SECRET_KEY`, and `DATABASE_URL=sqlite:///./autiassist.db`. Set local Ollama values (`AI_PROVIDER=ollama`, `OLLAMA_URL=http://localhost:11434/api/generate`, and `OLLAMA_MODEL=gemma3`) if using the local model.
@@ -140,7 +144,8 @@ VITE_API_URL=https://your-api.example.com npm run build
 - User activity routes scope records to the authenticated JWT user.
 - CORS allows only configured frontend origins in production.
 - Do not deploy with development credentials or expose `/docs` publicly if your deployment policy requires disabling API documentation.
-- Do not store webcam frames or raw voice recordings. Review the existing facial-expression estimate and external AI provider data policies before enabling them publicly.
+- Camera frames are transient and are not stored. The optional camera page uses the bundled MediaPipe Face Landmarker task at `backend/assets/face_landmarker.task` (from Google's official MediaPipe model storage; SHA-256 `64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff`) plus a lightweight **demo heuristic** over its blendshapes. It is not a trained mood classifier or a reliable reading of a child's feelings; results are labeled estimated facial expressions and should not be used as a diagnosis or assessment.
+- Do not store raw voice recordings. Review external AI provider data policies before enabling them publicly.
 - Before public use by children, complete a privacy/legal review appropriate to your location and audience (including applicable parental-consent requirements). The app is a prototype and does not establish compliance certification.
 
 ## Validation checklist
